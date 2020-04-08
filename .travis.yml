@@ -1,4 +1,3 @@
-sudo: false
 language: python
 matrix:
   include:
@@ -8,13 +7,30 @@ matrix:
       env: TOXENV=py35
     - python: 3.6
       env: TOXENV=py36
+    - python: 3.7
+      env: TOXENV=py37
+    - python: 3.8
+      env: TOXENV=py38
     - python: pypy
       env: TOXENV=pypy
+    - python: pypy3.5
+      env: TOXENV=pypy3
     - python: 2.7
       env: TOXENV=py27-benchmark
     - python: 3.6
       env: TOXENV=py36-benchmark
+    - python: 3.7
+      env: TOXENV=py37-benchmark
+    - python: 3.8
+      env: TOXENV=py38-benchmark
     - python: pypy
       env: TOXENV=pypy-benchmark
+    - python: pypy3.5
+      env: TOXENV=pypy3-benchmark
+    - python: 3.7
+      env: TOXENV=lint
+  allow_failures:
+    - python: 3.7
+      env: TOXENV=lint
 install: pip install tox
 script: tox
