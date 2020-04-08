@@ -1,14 +1,17 @@
+"""Native implementation of HStore format in pure Python."""
 from __future__ import print_function
+
+
+import io
 import re
 
 import six
 
-import io
 
-
-def dumps(obj, key_map=None, value_map=None, encoding='utf-8',
-          return_unicode=False):
-    r"""Converts a mapping object as PostgreSQL ``hstore`` format.
+def dumps(
+    obj, key_map=None, value_map=None, encoding="utf-8", return_unicode=False
+):
+    r"""Convert a mapping object as PostgreSQL ``hstore`` format.
 
     .. sourcecode:: pycon
 
@@ -43,7 +46,9 @@ def dumps(obj, key_map=None, value_map=None, encoding='utf-8',
     .. sourcecode:: pycon
 
        >>> import json
-       >>> dumps([('a', list(range(3))), ('b', 2)], value_map=json.dumps) == b'"a"=>"[0, 1, 2]","b"=>"2"'
+       >>> dumps(
+       ...     [('a', list(range(3))), ('b', 2)],
+       ...     value_map=json.dumps) == b'"a"=>"[0, 1, 2]","b"=>"2"'
        True
        >>> import pickle
        >>> result = dumps([('a', list(range(3))), ('b', 2)],
@@ -57,7 +62,10 @@ def dumps(obj, key_map=None, value_map=None, encoding='utf-8',
 
        >>> dumps({u'surname': u'\ud64d'}) == b'"surname"=>"\xed\x99\x8d"'
        True
-       >>> dumps({u'surname': u'\ud64d'}, encoding='utf-32') == b'"\xff\xfe\x00\x00s\x00\x00\x00u\x00\x00\x00r\x00\x00\x00n\x00\x00\x00a\x00\x00\x00m\x00\x00\x00e\x00\x00\x00"=>"\xff\xfe\x00\x00M\xd6\x00\x00"'
+       >>> dumps(
+       ...     {u'surname': u'\ud64d'},
+       ...     encoding='utf-32') == \
+       ... '"\xff\xfe\x00\x00s\x00\x00\x00u\x00\x00\x00r\x00\x00\x00n\x00\x00\x00a\x00\x00\x00m\x00\x00\x00e\x00\x00\x00"=>"\xff\xfe\x00\x00M\xd6\x00\x00"'
        True
 
     If you set ``return_unicode`` to ``True``, it will return :class:`six.text_type`
@@ -80,7 +88,7 @@ def dumps(obj, key_map=None, value_map=None, encoding='utf-8',
     :returns: a ``hstore`` data
     :rtype: :class:`six.string_types`
 
-    """
+    """  # noqa: E501
     b = io.BytesIO()
     dump(obj, b, key_map=key_map, value_map=value_map, encoding=encoding)
     result = b.getvalue()
@@ -89,8 +97,8 @@ def dumps(obj, key_map=None, value_map=None, encoding='utf-8',
     return result
 
 
-def loads(string, encoding='utf-8', return_type=dict):
-    """Parses the passed hstore format ``string`` to a Python mapping object.
+def loads(string, encoding="utf-8", return_type=dict):
+    """Parse the passed hstore format ``string`` to a Python mapping object.
 
     .. sourcecode:: pycon
 
@@ -120,9 +128,8 @@ def loads(string, encoding='utf-8', return_type=dict):
     return return_type(parse(string, encoding=encoding))
 
 
-def dump(obj, file, key_map=None, value_map=None, encoding='utf-8'):
-    """Similar to :func:`dumps()` except it writes the result into the passed
-    ``file`` object instead of returning it.
+def dump(obj, file, key_map=None, value_map=None, encoding="utf-8"):
+    """Write the object to the specified file in HStore format.
 
     .. sourcecode:: pycon
 
@@ -141,35 +148,47 @@ def dump(obj, file, key_map=None, value_map=None, encoding='utf-8'):
     :param encoding: a string encode to use
 
     """
-    if callable(getattr(obj, 'items', None)):
+    if callable(getattr(obj, "items", None)):
         items = obj.items()
-    elif callable(getattr(obj, '__iter__', None)):
+    elif callable(getattr(obj, "__iter__", None)):
         items = iter(obj)
     else:
-        raise TypeError('expected a mapping object, not ' + type(obj).__name__)
+        raise TypeError(
+            "expected a mapping object, not " + type(obj).__name__
+        )
     if key_map is None:
+
         def key_map(key):
-            raise TypeError('key %r is not a string' % key)
+            raise TypeError("key %r is not a string" % key)
+
     elif not callable(key_map):
-        raise TypeError('key_map must be callable')
+        raise TypeError("key_map must be callable")
     elif not (value_map is None or callable(value_map)):
-        raise TypeError('value_map must be callable')
-    write = getattr(file, 'write', None)
+        raise TypeError("value_map must be callable")
+    write = getattr(file, "write", None)
     if not callable(write):
-        raise TypeError('file must be a wrtiable file object that implements '
-                        'write() method')
+        raise TypeError(
+            "file must be a wrtiable file object that implements "
+            "write() method"
+        )
     first = True
     for key, value in items:
-        if not isinstance(key, six.string_types) and not isinstance(key, six.binary_type):
+        if not isinstance(key, six.string_types) and not isinstance(
+            key, six.binary_type
+        ):
             key = key_map(key)
         if not isinstance(key, six.binary_type):
             key = key.encode(encoding)
         if value is None:
             value = None
-        elif not (isinstance(value, six.string_types) or isinstance(value, six.binary_type)):
+        elif not (
+            isinstance(value, six.string_types)
+            or isinstance(value, six.binary_type)
+        ):
             if value_map is None:
-                raise TypeError('value %r of key %r is not a string' %
-                                (value, key))
+                raise TypeError(
+                    "value %r of key %r is not a string" % (value, key)
+                )
             value = value_map(value)
         if value is not None and not isinstance(value, six.binary_type):
             value = value.encode(encoding)
@@ -187,15 +206,14 @@ def dump(obj, file, key_map=None, value_map=None, encoding='utf-8'):
             write(b'"')
 
 
-def load(file, encoding='utf-8'):
-    """Similar to :func:`loads()` except it reads the passed ``file`` object
-    instead of a string.
-
-    """
-    read = getattr(file, 'read', None)
+def load(file, encoding="utf-8"):
+    """Load the contents of file in HStore into a Python object."""
+    read = getattr(file, "read", None)
     if not callable(read):
-        raise TypeError('file must be a readable file object that implements '
-                        'read() method')
+        raise TypeError(
+            "file must be a readable file object that implements "
+            "read() method"
+        )
     return loads(read(), encoding=encoding)
 
 
@@ -215,19 +233,24 @@ def load(file, encoding='utf-8'):
 #:
 #: ``vb``
 #:    Bare value string.
-PAIR_RE = re.compile(r'(?:"(?P<kq>(?:[^\\"]|\\.)*)"|(?P<kb>\S+?))\s*(=>|:)\s*'
-                     r'(?:"(?P<vq>(?:[^\\"]|\\.)*)"|(?P<vn>NULL)|'
-                     r'(?P<vb>[^,]+))(?:,|$)', re.IGNORECASE)
+PAIR_RE = re.compile(
+    r'(?:"(?P<kq>(?:[^\\"]|\\.)*)"|(?P<kb>\S+?))\s*(=>|:)\s*'
+    r'(?:"(?P<vq>(?:[^\\"]|\\.)*)"|(?P<vn>NULL)|'
+    r"(?P<vb>[^,]+))(?:,|$)",
+    re.IGNORECASE,
+)
 
 
-def parse(string, encoding='utf-8'):
-    r"""More primitive function of :func:`loads()`.  It returns a generator
-    that yields pairs of parsed hstore instead of a complete :class:`dict`
-    object.
+def parse(string, encoding="utf-8"):
+    r"""Create a generator of key-value pairs from a string.
+
+    For larger strings or amounts of data, it may be ideal to iterate over the
+    key-value pairs.
 
     .. sourcecode:: pycon
 
-       >>> list(parse('a=>1, b => 2, c => null, d => "NULL"')) == [(u'a', u'1'), (u'b', u'2'), (u'c', None), (u'd', u'NULL')]
+       >>> list(parse('a=>1, b => 2, c => null, d => "NULL"')) == [
+       ...     (u'a', u'1'), (u'b', u'2'), (u'c', None), (u'd', u'NULL')]
        True
        >>> list(parse(r'"a=>1"=>"\"b\"=>2",')) == [(u'a=>1', u'"b"=>2')]
        True
@@ -237,31 +260,31 @@ def parse(string, encoding='utf-8'):
         string = string.decode(encoding)
     offset = 0
     for match in PAIR_RE.finditer(string):
-        if offset > match.start() or string[offset:match.start()].strip():
-            raise ValueError('malformed hstore value: position %d' % offset)
-        kq = match.group('kq')
+        if offset > match.start() or string[offset : match.start()].strip():
+            raise ValueError("malformed hstore value: position %d" % offset)
+        kq = match.group("kq")
         if kq:
             key = unescape(kq)
         else:
-            key = match.group('kb')
-        vq = match.group('vq')
+            key = match.group("kb")
+        vq = match.group("vq")
         if vq:
             value = unescape(vq)
         else:
-            vn = match.group('vn')
-            value = None if vn else match.group('vb')
+            vn = match.group("vn")
+            value = None if vn else match.group("vb")
         yield key, value
         offset = match.end()
     if offset > len(string) or string[offset:].strip():
-        raise ValueError('malformed hstore value: position %d' % offset)
+        raise ValueError("malformed hstore value: position %d" % offset)
 
 
 #: The escape sequence pattern.
-ESCAPE_RE = re.compile(r'\\(.)')
+ESCAPE_RE = re.compile(r"\\(.)")
 
 
 def unescape(s):
-    r"""Strips escaped sequences.
+    r"""Strip escaped sequences.
 
     .. sourcecode:: pycon
 
@@ -271,11 +294,11 @@ def unescape(s):
        '"b"=>2'
 
     """
-    return ESCAPE_RE.sub(r'\1', s)
+    return ESCAPE_RE.sub(r"\1", s)
 
 
 def escape(s):
-    r"""Escapes quotes and backslashes for use in hstore byte strings.
+    r"""Escape quotes and backslashes for use in hstore byte strings.
 
     .. sourcecode:: pycon
 
@@ -283,6 +306,6 @@ def escape(s):
        True
     """
     if isinstance(s, six.binary_type):
-        return s.replace(b'\\', b'\\\\').replace(b'"', b'\\"')
+        return s.replace(b"\\", b"\\\\").replace(b'"', b'\\"')
     else:
-        return s.replace('\\', '\\\\').replace('"', '\\"')
+        return s.replace("\\", "\\\\").replace('"', '\\"')

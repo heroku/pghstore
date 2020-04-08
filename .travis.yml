@@ -29,8 +29,5 @@ matrix:
       env: TOXENV=pypy3-benchmark
     - python: 3.7
       env: TOXENV=lint
-  allow_failures:
-    - python: 3.7
-      env: TOXENV=lint
 install: pip install tox
 script: tox

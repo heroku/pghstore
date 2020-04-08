@@ -1,5 +1,4 @@
-""":mod:`pghstore` --- PostgreSQL hstore formatter
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+"""pghstore provides PostgreSQL hstore formatting for Python.
 
 This small module implements a formatter and a loader for hstore_,
 one of PostgreSQL_ supplied modules, that stores simple key-value pairs.
@@ -41,13 +40,15 @@ except ImportError:
         # XXX required to bootstrap setup.py with no pre-existing six
         pass
 else:
-    def dump(obj, file):
+
+    def dump(obj, file):  # noqa: D103
         file.write(dumps(obj, file))
 
-    def load(file):
+    def load(file):  # noqa: D103
         return loads(file.read())
 
-__all__ = '__version__', 'dump', 'dumps', 'load', 'loads'
+
+__all__ = "__version__", "dump", "dumps", "load", "loads"
 
 
 #: (:class:`six.string_types`) The version string e.g. ``'0.9.2'``.
@@ -55,4 +56,3 @@ __all__ = '__version__', 'dump', 'dumps', 'load', 'loads'
 #: .. deprecated:: 1.0.0
 #:    Use :mod:`pghstore.version` module instead.
 __version__ = VERSION
-
