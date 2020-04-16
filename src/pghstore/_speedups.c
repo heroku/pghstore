@@ -35,16 +35,17 @@ struct module_state {
  * Just like strchr, but find first -unescaped- occurrence of c in s.
  */
 char *
-strchr_unescaped(char *s, char c) 
+strchr_unescaped(char *s, Py_ssize_t length, char c) 
 {
-  char *p = strchr(s, c), *q;
+  char *end = s + length;
+  char *p = memchr(s, c, length), *q;
   while (p != NULL) { /* loop through all the c's */
     q = p; /* scan backwards through preceding escapes */
     while (q > s && *(q-1) == '\\')
       q--;
     if (isEven(p-q)) /* even number of esc's => c is good */
         return p;
-    p = strchr(p+1, c); /* else odd escapes => c is escaped, keep going */
+    p = memchr(p+1, c, end - p + 1); /* else odd escapes => c is escaped, keep going */
   }
   return NULL;
 }
@@ -108,8 +109,9 @@ _speedups_loads(PyObject *self, PyObject *args, PyObject *keywds)
   static char *keyword_argument_names[] = {"string", "encoding", "return_type", NULL};
   const char *errors = "strict";
   char *encoding = "utf-8";
-  char *s;
+  char *s, *s_end;
   Py_ssize_t s_length = 0;
+  Py_ssize_t remaining_length = 0;
   int i, null_value = 0;
   int is_dictionary = 0;
   char *key_start, *key_end, *value_start, *value_end;
@@ -127,20 +129,31 @@ _speedups_loads(PyObject *self, PyObject *args, PyObject *keywds)
    * We need `s#` as a format argument here so we can receive both unicode and
    * bytes objects in char *s.
    */
+  remaining_length = s_length;
+  s_end = s+s_length;
 
   return_value = PyObject_CallObject((PyObject *) return_type, NULL);
   is_dictionary = PyDict_Check(return_value);
   
   // Each iteration will find one key/value pair
-  while ((key_start = strchr(s, '"')) != NULL) {
+  while ((key_start = memchr(s, '"', s_end-s)) != NULL) {
     // move to the next character after the found "
     key_start++;
-
+    if (key_start > s_end) {
+        goto _speedup_loads_cleanup_and_exit;
+    }
     // Find end of key
-    key_end = strchr_unescaped(key_start, '"');
+    key_end = strchr_unescaped(key_start, s_end-key_start, '"');
+    if (key_end == NULL) {
+        if (PyErr_Occurred() == NULL){
+            PyErr_Format(PyExc_ValueError,                  
+                    "Unexpected end of input at char %i, was expecting %c.", s_length, '"');                          
+        }
+        goto _speedup_loads_cleanup_and_exit;
+    }
 
     // Find begining of value or NULL
-    for (i=1; 1; i++) {
+    for (i=1; s<=s_end; i++) {
       switch (*(key_end+i)) {
       case 'N':
       case 'n':
@@ -160,14 +173,25 @@ _speedups_loads(PyObject *self, PyObject *args, PyObject *keywds)
       }
       break;
     }
+    if (s> s_end){
+        if (PyErr_Occurred() == NULL){
+            PyErr_Format(PyExc_ValueError,                  
+                    "Unexpected end of input at char %i.", s_length);                          
+        }
+        goto _speedup_loads_cleanup_and_exit;
+    }
      
     key = unescape(key_start, key_end, encoding, errors);
     if (key == NULL) {
+        if (PyErr_Occurred() == NULL){
+            PyErr_Format(PyExc_ValueError,                  
+                    "Unexpected end of input at char %i, was expecting %c.", s_length, '"');                          
+        }
         goto _speedup_loads_cleanup_and_exit;
     }
     if (null_value == 0) {
       // find and null terminate end of value
-      value_end = strchr_unescaped(value_start, '"');
+      value_end = strchr_unescaped(value_start, s_end-value_start, '"');
       value = unescape(value_start, value_end, encoding, errors);
     } else {
       Py_INCREF(Py_None);
