@@ -93,7 +93,7 @@ def loads(string, encoding="utf-8", return_type=dict):
 
     .. sourcecode:: pycon
 
-       >>> loads('a=>1') == {u'a': u'1'}
+       >>> loads('"a"=>"1"') == {u'a': u'1'}
        True
 
     If you want to load a hstore value as any other type than :class:`dict`
@@ -102,7 +102,7 @@ def loads(string, encoding="utf-8", return_type=dict):
 
     .. sourcecode:: pycon
 
-       >>> loads('a=>1, b=>2', return_type=list) == [(u'a', u'1'), (u'b', u'2')]
+       >>> loads('"a"=>"1", "b"=>"2"', return_type=list) == [(u'a', u'1'), (u'b', u'2')]
        True
        >>> loads('"return_type"=>"tuple"', return_type=tuple) == ((u'return_type', u'tuple'),)
        True
@@ -238,7 +238,7 @@ def parse(string, encoding="utf-8"):
 
        >>> list(parse('"a"=>"1", "b" => "2", "c" => null, "d" => "NULL"')) == [(u'a', u'1'), (u'b', u'2'), (u'c', None), (u'd', u'NULL')]
        True
-       >>> list(parse(r'"a=>1"=>"\"b\"=>2",')) == [(u'a=>1', u'"b"=>2')]
+       >>> list(parse(r'"a=>1"=>"\"b\"=>2"')) == [(u'a=>1', u'"b"=>2')]
        True
 
     """

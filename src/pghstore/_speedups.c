@@ -34,7 +34,7 @@ char *
 strchr_unescaped(char *s, Py_ssize_t length, char c) 
 {
   char *end = s + length;
-  debug_print( "looging for p: s[%c, %p]\n", *s,  s);
+  debug_print( "looking for p: s[%c, %p]\n", *s,  s);
   char *p = memchr(s, c, length), *q;
   debug_print( "found p: [%c, %p]\n", *p,  p);
   while (p != NULL) { /* loop through all the c's */
@@ -254,7 +254,6 @@ _speedups_loads(PyObject *self, PyObject *args, PyObject *keywds)
   char *encoding = "utf-8";
   char *s_start, *s_end, *pos;
   Py_ssize_t s_length = 0;
-  Py_ssize_t remaining_length = 0;
   int null_value = 0, got_one = 0, need_one = 0;
   int is_dictionary = 0;
   char *key_start, *key_end, *value_start, *value_end;
@@ -272,7 +271,6 @@ _speedups_loads(PyObject *self, PyObject *args, PyObject *keywds)
    * We need `s#` as a format argument here so we can receive both unicode and
    * bytes objects in char *s_start.
    */
-  remaining_length = s_length;
   s_end = s_start+s_length;
 
   return_value = PyObject_CallObject((PyObject *) return_type, NULL);
