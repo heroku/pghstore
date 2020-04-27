@@ -33,11 +33,13 @@ class LoadsTests(unittest.TestCase):
         self.assertEqual(self.pghstore.loads('"key" => null'), {"key": None})
         self.assertEqual(self.pghstore.loads('"key" => NULL'), {"key": None})
         self.assertEqual(
-            self.pghstore.loads('"key" => NULL, "key2": "value2"'),
+            self.pghstore.loads('"key" => NULL, "key2" => "value2"'),
             {"key": None, "key2": "value2"},
         )
         self.assertEqual(
-            self.pghstore.loads(b'"key0" => "value0", "key" => NULL, "key2": "value2"'),
+            self.pghstore.loads(
+                b'"key0" => "value0", "key" => NULL, "key2" => "value2"'
+            ),
             {"key0": "value0", "key": None, "key2": "value2"},
         )
 
@@ -209,6 +211,36 @@ class LoadsTests(unittest.TestCase):
 
     def test_decode_failure_weird_quote2(self):
         s = b'"keyokay"=>NULL, "key"=>NULL"'
+        with self.assertRaises(ValueError):
+            self.pghstore.loads(s)
+
+    def test_invalid_kv_separator(self):
+        s = '"key" => NULL, "key2" : "value2"'
+        with self.assertRaises(ValueError):
+            self.pghstore.loads(s)
+
+    def test_invalid_trailing_comma(self):
+        s = '"key" => NULL, "key2" => "value2",'
+        with self.assertRaises(ValueError):
+            self.pghstore.loads(s)
+
+    def test_invalid_trailing_comma_with_space(self):
+        s = '"key" => NULL, "key2" => "value2",   '
+        with self.assertRaises(ValueError):
+            self.pghstore.loads(s)
+
+    def test_invalid_trailing_quote(self):
+        s = '"key" => NULL, "key2" => "value2" "quoted"'
+        with self.assertRaises(ValueError):
+            self.pghstore.loads(s)
+
+    def test_invalid_trailing_junk(self):
+        s = '"key" => NULL, "key2" => "value2", junk'
+        with self.assertRaises(ValueError):
+            self.pghstore.loads(s)
+
+    def test_invalid_starting_junk(self):
+        s = 'junk, "key" => NULL, "key2" => "value2"'
         with self.assertRaises(ValueError):
             self.pghstore.loads(s)
 
