@@ -260,6 +260,12 @@ class LoadsTests(unittest.TestCase):
         d = {"failing": r"some test \""}
         self.assertDictEqual(d, self.pghstore.loads(self.pghstore.dumps(d)))
 
+    def test_roundtrip_multiple(self):
+        src = [("pgsql", "mysql"), ("python", "php"), ("gevent", "nodejs")]
+        self.assertEqual(
+            src, self.pghstore.loads(self.pghstore.dumps(src), return_type=list)
+        )
+
 
 @pytest.mark.skipif(
     _speedups is None, reason="Could not compile C extensions for tests"

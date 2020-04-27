@@ -148,7 +148,7 @@ int _find_quoted(char **start_pos, char *s_start, char *s_end, char **token_star
             case '\n':
                 break;
             case '"':
-                // start of key
+                // start of quoted token
                 only_space = 0;
                 *token_start = pos + 1;
                 *token_end = strchr_unescaped(*token_start, s_end-(*token_start), '"');
@@ -163,7 +163,7 @@ int _find_quoted(char **start_pos, char *s_start, char *s_end, char **token_star
 
                 *start_pos = (*token_end) + 1;
 
-                debug_print( "found key: pos[%c, %li], ks[%c, %li], ke[%c, %li]\n", **start_pos,  *start_pos-s_start, **token_start, *token_start-s_start, **token_end, *token_end-s_start);
+                debug_print( "found token: pos[%c, %li], ks[%c, %li], ke[%c, %li]\n", **start_pos,  *start_pos-s_start, **token_start, *token_start-s_start, **token_end, *token_end-s_start);
                 return 0;
             
             case 'N':
@@ -229,7 +229,7 @@ int _find_comma_separator(char **s, char *s_start, char *s_end){
             default:
                 if (retval == 1) {
                     // a comma was found and this should be the start of a new key.
-                    *s = pos-1;
+                    *s = pos;
                     return retval;
                 }
                 // Non-space found before comma
@@ -318,10 +318,12 @@ _speedups_loads(PyObject *self, PyObject *args, PyObject *keywds)
       switch (_find_quoted(&pos, s_start, s_end, &value_start, &value_end, 1)){
           case 2:
               // NULL
+              debug_print( "found null value: pos[%c, %li]\n", *pos,  pos-s_start);
               null_value = 1;
               break;
           case 0:
               // quoted value
+              debug_print( "found value: pos[%c, %li], vs[%c, %li], ve[%c, %li]\n", *pos,  pos-s_start, *value_start, value_start-s_start, *value_end, value_end-s_start);
               null_value = 0;
               break;
         
@@ -366,11 +368,13 @@ _speedups_loads(PyObject *self, PyObject *args, PyObject *keywds)
       switch (_find_comma_separator(&pos, s_start, s_end)) {
         case 0:
             // only space
+            debug_print( "found only space: pos[%c, %li]\n", *pos,  pos-s_start);
             need_one = 0;
             break;
         case 1:
             // comma found
             // we expect to need an iteration
+            debug_print( "found comma: pos[%c, %li]\n", *pos,  pos-s_start);
             need_one = 1;
             break;
 
