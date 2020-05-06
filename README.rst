@@ -24,7 +24,7 @@ You can easily install the package from PyPI_ by using ``pip`` or
 
 Visit the website to read its documentation:
 
-http://dahlia.github.com/pghstore/
+https://pghstore.readthedocs.io/
 
 .. _hstore: http://www.postgresql.org/docs/9.1/static/hstore.html
 .. _PostgreSQL: http://www.postgresql.org/
@@ -34,13 +34,21 @@ http://dahlia.github.com/pghstore/
 Changelog
 ---------
 
-Version 2.0.1
+Version 2.0.2
 '''''''''''''
+
+- Fixes a segmentation fault caused by trying to parse invalid HStore strings.
+  See also (`#13`_)
+
+.. _#13: https://github.com/heroku/pghstore/issues/13
+
+Version 2.0.1 (unreleased to PyPI)
+''''''''''''''''''''''''''''''''''
 
 - Fixes a regression in behaviour with escape characters
 
-Version 2.0.0
-'''''''''''''
+Version 2.0.0 (unreleased to PyPI)
+''''''''''''''''''''''''''''''''''
 
 - Supports Python 2.7+ and Python3.5+ both natively and with C extension
 
@@ -51,9 +59,9 @@ Version 0.9.2
 
 Released on May 3, 2012.
 
-- Fixed escaping of quotes and backslshes. Patched by Dan Watson (`#2`__).
+- Fixed escaping of quotes and backslshes. Patched by Dan Watson (`#2`_).
 
-__ https://github.com/StyleShare/pghstore/pull/2
+.. _#2: https://github.com/StyleShare/pghstore/pull/2
 
 
 Version 0.9.1
@@ -70,4 +78,3 @@ Version 0.9.0
 Released on December 22, 2011.
 
 - Initial version.
-
