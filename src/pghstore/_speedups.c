@@ -19,13 +19,9 @@ struct module_state {
 #define GETSTATE(m) ((struct module_state*)PyModule_GetState(m))
 #endif
 
-#define CHAR_CHECK(s, pos, c)                        \
-  if (s[pos] != char) {                              \
-    PyErr_Format(PyExc_ValueError,                   \
-                 "Encountered %c at %i, was expecting %c.",   \
-                 s[pos], pos, c);                             \
-    return NULL;                                              \
-  }
+#define DEBUG_PRINT 0
+#define debug_print(fmt, ...) do { if (DEBUG_PRINT) fprintf(stderr, fmt, __VA_ARGS__); } while (0)
+
 
 #define isEven(a) (((a) & 1) == 0)
 
@@ -35,16 +31,22 @@ struct module_state {
  * Just like strchr, but find first -unescaped- occurrence of c in s.
  */
 char *
-strchr_unescaped(char *s, char c) 
+strchr_unescaped(char *s, Py_ssize_t length, char c) 
 {
-  char *p = strchr(s, c), *q;
+  char *end = s + length;
+  debug_print( "looking for p: s[%c, %p]\n", *s,  s);
+  char *p = memchr(s, c, length), *q;
+  debug_print( "found p: [%c, %p]\n", *p,  p);
   while (p != NULL) { /* loop through all the c's */
     q = p; /* scan backwards through preceding escapes */
-    while (q > s && *(q-1) == '\\')
+    while (q > s && *(q-1) == '\\') {
       q--;
-    if (isEven(p-q)) /* even number of esc's => c is good */
+    }
+    if (isEven(p-q)){ /* even number of esc's => c is good */
+        debug_print( "found p: s[%c, %p]\n", *p,  p);
         return p;
-    p = strchr(p+1, c); /* else odd escapes => c is escaped, keep going */
+    }
+    p = memchr(p+1, c, end - (p + 1)); /* else odd escapes => c is escaped, keep going */
   }
   return NULL;
 }
@@ -102,21 +104,163 @@ escape(PyObject* to_escape)
     return escaped;
 }
 
+int _find_key_value_separator(char **start, char *s_start, char *s_end) {
+    char *pos;
+    for(pos = *start; pos <= s_end; pos++) {
+        switch(*pos) {
+            case ' ':
+            case '\t':
+            case '\r':
+            case '\n':
+                break;
+            case '=':
+                if (pos[1] == '>') {
+                    *start = pos + 2;
+                    return 0;
+                }
+            default:
+                if (PyErr_Occurred() == NULL){
+                    PyErr_Format(PyExc_ValueError,                  
+                            "Unexpected input after position %i, was expecting a =>, got %c", pos-s_start, *pos);                          
+                }
+                return 1;
+        }
+    }
+    if (PyErr_Occurred() == NULL){
+        PyErr_Format(PyExc_ValueError,                  
+                "Unexpected end of input after position %i, was expecting a =>", pos-s_start);                          
+    }
+    return 1;
+}
+int _find_quoted(char **start_pos, char *s_start, char *s_end, char **token_start, char **token_end, int allow_null) {
+    char *pos;
+    int only_space = 1;
+
+    *token_start = NULL;
+    *token_end = NULL;
+
+    for(pos = *start_pos; pos <= s_end; pos++) {
+        // consume empty space
+        switch(*pos) {
+            case ' ':
+            case '\t':
+            case '\r':
+            case '\n':
+                break;
+            case '"':
+                // start of quoted token
+                only_space = 0;
+                *token_start = pos + 1;
+                *token_end = strchr_unescaped(*token_start, s_end-(*token_start), '"');
+
+                if (*token_end == NULL) {
+                    if (PyErr_Occurred() == NULL){
+                        PyErr_Format(PyExc_ValueError,                  
+                                "Unexpected end of input after position %i, was expecting a quoted string.", pos-s_start);                          
+                    }
+                    return 1;
+                }
+
+                *start_pos = (*token_end) + 1;
+
+                debug_print( "found token: pos[%c, %li], ks[%c, %li], ke[%c, %li]\n", **start_pos,  *start_pos-s_start, **token_start, *token_start-s_start, **token_end, *token_end-s_start);
+                return 0;
+            
+            case 'N':
+            case 'n':
+                only_space = 0;
+                if (allow_null) {
+                    char *nullstr_uc = "NULL";
+                    char *nullstr_lc = "null";
+                    int is_null = 1;
+                    for (int i = 1; i < 4; i++) {
+                        is_null = is_null && (pos[i] == nullstr_uc[i] || pos[i] == nullstr_lc[i]);
+                        if (!is_null) {
+                            break;
+                        }
+                    }
+                    if (is_null) {
+                        *start_pos = pos + 4;
+                        return 2; 
+                    }
+                }
+
+            default:
+                if (PyErr_Occurred() == NULL){
+                    PyErr_Format(PyExc_ValueError,                  
+                            "Unexpected end of input after position %i, was expecting a quoted string.", pos-s_start);
+                }
+                return 1;
+        }
+    }
+    if (!only_space) {
+        if (PyErr_Occurred() == NULL){
+            PyErr_Format(PyExc_ValueError,                  
+                    "Unexpected end of input after position %i, was expecting a quoted string.", pos-s_start);                          
+        }
+
+        return 1;
+    }
+    return 3;
+
+}
+
+int _find_comma_separator(char **s, char *s_start, char *s_end){
+    int retval = 0;
+    char * pos;
+    for (pos = *s; pos < s_end; pos++) {
+        switch(*pos) {
+            case ' ':
+            case '\t':
+            case '\r':
+            case '\n':
+                break;
+            case ',':
+                if (retval) {
+                    // double comma
+                    if (PyErr_Occurred() == NULL){
+                        PyErr_Format(PyExc_ValueError,                  
+                                "Extra ',' at position %i found. Was expecting '\"'", pos-s_start);
+                    }
+                    return 2;
+                }
+                retval = 1;
+                break;
+            default:
+                if (retval == 1) {
+                    // a comma was found and this should be the start of a new key.
+                    *s = pos;
+                    return retval;
+                }
+                // Non-space found before comma
+                if (PyErr_Occurred() == NULL){
+                    PyErr_Format(PyExc_ValueError,                  
+                            "Unexpected value '%c', %p found at position %i found. Was expecting ','", *pos, *pos, pos-s_start);
+                }
+                return 2;
+        }
+    }
+
+    // only space
+    *s = pos;
+    return retval;
+}
+
 static PyObject *
 _speedups_loads(PyObject *self, PyObject *args, PyObject *keywds)
 {
   static char *keyword_argument_names[] = {"string", "encoding", "return_type", NULL};
   const char *errors = "strict";
   char *encoding = "utf-8";
-  char *s;
+  char *s_start, *s_end, *pos;
   Py_ssize_t s_length = 0;
-  int i, null_value = 0;
+  int null_value = 0, got_one = 0, need_one = 0;
   int is_dictionary = 0;
   char *key_start, *key_end, *value_start, *value_end;
   PyTypeObject *return_type = &PyDict_Type;
   PyObject *return_value, *key, *value;
 
-  if (!PyArg_ParseTupleAndKeywords(args, keywds, "s#|sO", keyword_argument_names, &s, &s_length, &encoding, &return_type)) {
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, "s#|sO", keyword_argument_names, &s_start, &s_length, &encoding, &return_type)) {
     return NULL;
   }
   /* NOTE(sigmavirus24): Because we use `s#` to parse the input string, we
@@ -125,85 +269,138 @@ _speedups_loads(PyObject *self, PyObject *args, PyObject *keywds)
    * All of our tests presently pass but it's plausible that we could find
    * data with null characters inside and have to update this to match.
    * We need `s#` as a format argument here so we can receive both unicode and
-   * bytes objects in char *s.
+   * bytes objects in char *s_start.
    */
+  s_end = s_start+s_length;
 
   return_value = PyObject_CallObject((PyObject *) return_type, NULL);
   is_dictionary = PyDict_Check(return_value);
-  
-  // Each iteration will find one key/value pair
-  while ((key_start = strchr(s, '"')) != NULL) {
-    // move to the next character after the found "
-    key_start++;
 
-    // Find end of key
-    key_end = strchr_unescaped(key_start, '"');
-
-    // Find begining of value or NULL
-    for (i=1; 1; i++) {
-      switch (*(key_end+i)) {
-      case 'N':
-      case 'n':
-        // found NULL
-        null_value = 1;
-        break;
-      case '"':
-        // found begining of value
-        value_start = key_end+i+1;
-        break;
-      case '\0':
-        // found end of string
-        return return_value;
-      default:
-        // neither NULL nor begining of value, keep looking
-        continue;
+  pos = s_start;
+  while (pos < s_end){
+      key_start = NULL;
+      key_end = NULL;
+      value_start = NULL;
+      value_end= NULL;
+      null_value = 0;
+      
+      switch(_find_quoted(&pos, s_start, s_end, &key_start, &key_end, 0)){
+          case 0:
+              // valid key found
+              debug_print( "found key: pos[%c, %li], ks[%c, %li], ke[%c, %li]\n", *pos,  pos-s_start, *key_start, key_start-s_start, *key_end, key_end-s_start);
+              need_one = 0;
+              break;
+          case 3:
+              // we got only space at this point
+              if (got_one) {
+                  if (need_one) {
+                      if (PyErr_Occurred() == NULL){
+                          PyErr_Format(PyExc_ValueError,                  
+                                      "Unexpected end of input at position %i, was expecting '\"'.", s_length, '"');                          
+                      }
+                      goto _speedup_loads_cleanup_and_exit;
+                  }
+                  return return_value;
+              } else {
+                  // logic to return None
+                  Py_DECREF(return_value);
+                  Py_INCREF(Py_None);
+                  return Py_None;
+              }
+          default:
+              // exception set in _find_quoted
+              goto _speedup_loads_cleanup_and_exit;
       }
-      break;
-    }
-     
-    key = unescape(key_start, key_end, encoding, errors);
-    if (key == NULL) {
+      if (_find_key_value_separator(&pos, s_start, s_end)) {
+          // error set in _find_key_value_separator
+          goto _speedup_loads_cleanup_and_exit;
+      }
+      switch (_find_quoted(&pos, s_start, s_end, &value_start, &value_end, 1)){
+          case 2:
+              // NULL
+              debug_print( "found null value: pos[%c, %li]\n", *pos,  pos-s_start);
+              null_value = 1;
+              break;
+          case 0:
+              // quoted value
+              debug_print( "found value: pos[%c, %li], vs[%c, %li], ve[%c, %li]\n", *pos,  pos-s_start, *value_start, value_start-s_start, *value_end, value_end-s_start);
+              null_value = 0;
+              break;
+        
+          default:
+              // error finding separator
+              goto _speedup_loads_cleanup_and_exit;
+              break; // never gonna get here
+      }
+
+      // handle key/value
+      key = unescape(key_start, key_end, encoding, errors);
+      if (key == NULL) {
+          if (PyErr_Occurred() == NULL){
+              PyErr_Format(PyExc_ValueError,                  
+                      "Unexpected end of input at position %i, was expecting %c.", s_length, '"');                          
+          }
+          goto _speedup_loads_cleanup_and_exit;
+      }
+      if (null_value == 0) {
+          // find and null terminate end of value
+          value_end = strchr_unescaped(value_start, s_end-value_start, '"');
+          value = unescape(value_start, value_end, encoding, errors);
+      } else {
+          Py_INCREF(Py_None);
+          value = Py_None;
+      }
+      if (key == NULL || value == NULL) {
         goto _speedup_loads_cleanup_and_exit;
-    }
-    if (null_value == 0) {
-      // find and null terminate end of value
-      value_end = strchr_unescaped(value_start, '"');
-      value = unescape(value_start, value_end, encoding, errors);
-    } else {
-      Py_INCREF(Py_None);
-      value = Py_None;
-    }
+      }
 
-    if (key == NULL || value == NULL) {
-_speedup_loads_cleanup_and_exit:
-        Py_XDECREF(key);
-        Py_XDECREF(value);
-        Py_DECREF(return_value);
-        return NULL;
-    }
+      if (is_dictionary) {
+          PyDict_SetItem(return_value, key, value);
+      } else {
+          PyList_Append(return_value, PyTuple_Pack(2, key, value));
+      }
 
-    if (is_dictionary) {
-      PyDict_SetItem(return_value, key, value);
-    } else {
-      PyList_Append(return_value, PyTuple_Pack(2, key, value));
-    }
+      Py_DECREF(key);
+      Py_DECREF(value);
+      key = NULL;
+      value = NULL;
+      
+      switch (_find_comma_separator(&pos, s_start, s_end)) {
+        case 0:
+            // only space
+            debug_print( "found only space: pos[%c, %li]\n", *pos,  pos-s_start);
+            need_one = 0;
+            break;
+        case 1:
+            // comma found
+            // we expect to need an iteration
+            debug_print( "found comma: pos[%c, %li]\n", *pos,  pos-s_start);
+            need_one = 1;
+            break;
 
-    Py_DECREF(key);
-    Py_DECREF(value);
-    key = NULL;
-    value = NULL;
-    
-    // set new search position
-    if (null_value == 0) {
-      s = value_end + 1;
-    } else {
-      s = key_end + i;
-    }
+        default:
+            // found something other than leading space and a single comma
+            goto _speedup_loads_cleanup_and_exit;
+      }
+  }
 
-    // reset null value flag
-    null_value = 0;
+  if (need_one) {
+      if (PyErr_Occurred() == NULL){
+          PyErr_Format(PyExc_ValueError,                  
+                      "Unexpected end of input at position %i, was expecting '\"'.", s_length, '"');                          
+      }
+      goto _speedup_loads_cleanup_and_exit;
+
   }
   return return_value;
+
+_speedup_loads_cleanup_and_exit:
+    Py_XDECREF(key);
+    Py_XDECREF(value);
+    Py_DECREF(return_value);
+    return NULL;
+
+
 }
 
 #define COMMA ","
