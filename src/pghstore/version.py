@@ -1,5 +1,4 @@
-""":mod:`pghstore.version` --- Version data
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+"""Version data for the pghstore module.
 
 You can find the current version in the command line interface:
 
@@ -11,6 +10,7 @@ You can find the current version in the command line interface:
 .. versionadded:: 1.0.0
 
 """
+
 from __future__ import print_function
 
 __all__ = "VERSION", "VERSION_INFO"

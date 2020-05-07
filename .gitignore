@@ -8,3 +8,4 @@ pghstore/_speedups.so
 .*.swp
 .cache/
 *.so
+.mypy_cache/
