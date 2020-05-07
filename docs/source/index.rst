@@ -17,16 +17,16 @@ optimized C version).
 Distributed under `MIT License <http://minhee.mit-license.org/>`_.
 
 You can find the source code from the `GitHub repository
-<https://github.com/dahlia/pghstore>`_:
+<https://github.com/heroku/pghstore>`_:
 
 .. sourcecode:: console
 
-   $ git clone git://github.com/dahlia/pghstore.git
+   $ git clone git://github.com/heroku/pghstore.git
 
 To report bugs or request features use the `issue tracker
-<https://github.com/dahlia/pghstore/issues>`_.
+<https://github.com/heroku/pghstore/issues>`_.
 
-.. image:: https://secure.travis-ci.org/dahlia/pghstore.png?branch=master
+.. image:: https://secure.travis-ci.org/heroku/pghstore.png?branch=master
    :alt: Build Status
-   :target: http://travis-ci.org/dahlia/pghstore
+   :target: http://travis-ci.org/heroku/pghstore
 
