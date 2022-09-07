@@ -176,8 +176,7 @@ def dump(obj, file, key_map=None, value_map=None, encoding="utf-8"):
         if value is None:
             value = None
         elif not (
-            isinstance(value, six.string_types)
-            or isinstance(value, six.binary_type)
+            isinstance(value, six.string_types) or isinstance(value, six.binary_type)
         ):
             if value_map is None:
                 raise TypeError(
