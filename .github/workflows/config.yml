@@ -1,0 +1,54 @@
+name: pghstore CI
+
+on: push
+
+jobs:
+
+  build:
+    strategy:
+      matrix:
+        include:
+          - toxenv: py27
+            python_version: "2.7"
+          - toxenv: py35
+            python_version: "3.5"
+          - toxenv: py36
+            python_version: "3.6"
+          - toxenv: py37
+            python_version: "3.7"
+          - toxenv: py38
+            python_version: "3.8"
+          - toxenv: pypy
+            python_version: "pypy"
+          - toxenv: pypy3
+            python_version: "pypy3.5"
+          - toxenv: py27-benchmark
+            python_version: "2.7"
+          - toxenv: py36-benchmark
+            python_version: "3.6"
+          - toxenv: py37-benchmark
+            python_version: "3.7"
+          - toxenv: py38-benchmark
+            python_version: "3.8"
+          - toxenv: pypy-benchmark
+            python_version: "pypy"
+          - toxenv: pypy3-benchmark
+            python_version: "pypy3.5"
+          - toxenv: lint
+            python_version: "3.7"
+
+    name: ${{ matrix.toxenv }} tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the code
+        uses: actions/checkout@v3
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python_version }}
+      - name: Install tox
+        run: pip install tox
+      - name: Run tests
+        env:
+          TOXENV: ${{ matrix.toxenv }}
+        run: tox

@@ -26,7 +26,7 @@ You can find the source code from the `GitHub repository
 To report bugs or request features use the `issue tracker
 <https://github.com/heroku/pghstore/issues>`_.
 
-.. image:: https://secure.travis-ci.org/heroku/pghstore.png?branch=master
-   :alt: Build Status
-   :target: http://travis-ci.org/heroku/pghstore
+.. image:: https://github.com/heroku/pghstore/actions/workflows/config.yml/badge.svg?branch=main
+   :alt: CI Status
+   :target: https://github.com/heroku/pghstore/actions?query=branch%3Amain
 
