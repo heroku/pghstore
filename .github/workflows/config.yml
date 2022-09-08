@@ -19,7 +19,7 @@ jobs:
           - toxenv: py38
             python_version: "3.8"
           - toxenv: pypy
-            python_version: "pypy"
+            python_version: "pypy3.7"
           - toxenv: pypy3
             python_version: "pypy3.5"
           - toxenv: py27-benchmark
@@ -31,7 +31,7 @@ jobs:
           - toxenv: py38-benchmark
             python_version: "3.8"
           - toxenv: pypy-benchmark
-            python_version: "pypy"
+            python_version: "pypy3.7"
           - toxenv: pypy3-benchmark
             python_version: "pypy3.5"
           - toxenv: lint
