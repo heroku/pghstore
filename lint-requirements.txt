@@ -1,5 +1,6 @@
 # black is pinned to support Python 2
 black==21.12b0
+click==8.0.2
 flake8
 flake8-import-order
 flake8-docstrings
