@@ -1,4 +1,5 @@
-black
+# black is pinned to support Python 2
+black==21.12b0
 flake8
 flake8-import-order
 flake8-docstrings
