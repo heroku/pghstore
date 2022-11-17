@@ -22,18 +22,6 @@ jobs:
             python_version: "pypy2.7"
           - toxenv: pypy3
             python_version: "pypy3.8"
-          - toxenv: py27-benchmark
-            python_version: "2.7"
-          - toxenv: py36-benchmark
-            python_version: "3.6"
-          - toxenv: py37-benchmark
-            python_version: "3.7"
-          - toxenv: py38-benchmark
-            python_version: "3.8"
-          - toxenv: pypy-benchmark
-            python_version: "pypy2.7"
-          - toxenv: pypy3-benchmark
-            python_version: "pypy3.8"
           - toxenv: lint
             python_version: "3.7"
 
