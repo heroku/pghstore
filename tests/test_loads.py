@@ -2,9 +2,10 @@
 """Test cases for loading data from a string into a Python data structure."""
 import unittest
 
+from pghstore import _native
+
 import pytest
 
-from pghstore import _native
 
 try:
     from pghstore import _speedups
@@ -13,6 +14,8 @@ except ImportError:
 
 
 class LoadsTests(unittest.TestCase):
+    """Tests for pghstore.loads."""
+
     pghstore = _native
 
     def test_empty(self):

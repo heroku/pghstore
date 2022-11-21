@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
+"""Test cases for converting data from a Python data structure into a string."""
 import unittest
 
+from pghstore import _native
+
 import pytest
+
 import six
 
-from pghstore import _native
 
 try:
     from pghstore import _speedups
@@ -13,6 +16,8 @@ except ImportError:
 
 
 class DumpsTests(unittest.TestCase):
+    """Tests for pghstore.dumps."""
+
     pghstore = _native
 
     def assertDumpsMatchesDict(self, s, d):  # noqa: N802

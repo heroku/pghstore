@@ -32,11 +32,10 @@ class LoadsBenchmark(unittest.TestCase):
             pg_time = timeit.timeit(partial(pypghstore.loads, name), number=n)
             if cpghstore is not None:
                 cpg_time = timeit.timeit(partial(cpghstore.loads, name), number=n)
-                self.assertTrue(cpg_time < pg_time)
-
                 print(
                     tmpl % (n, len(name), cpg_time, floor(pg_time / cpg_time), pg_time)
                 )
+                self.assertLess(cpg_time, pg_time)
             else:
                 print(tmpl_2 % (n, len(name), pg_time))
 

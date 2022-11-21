@@ -39,7 +39,7 @@ class DumpsBenchmark(unittest.TestCase):
             pg_time = timeit.timeit(partial(pypghstore.dumps, name), number=n)
             if cpghstore:
                 cpg_time = timeit.timeit(partial(cpghstore.dumps, name), number=n)
-                self.assertTrue(cpg_time < pg_time)
                 print(tmpl % (n, len(name), cpg_time, floor(pg_time / cpg_time), pg_time))
+                self.assertLess(cpg_time, pg_time)
             else:
                 print(tmpl_2 % (n, len(name), pg_time))
